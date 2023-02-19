@@ -18,7 +18,7 @@ REGION_2B="us-west-2b"
 # _____________Start of commands________________
 
 #Creating a new VPC
-vpc_id=$(aws ec2 create-vpc --cidr-block $VPC_CIDR --region="us-west-2" --map-public-ip-on-launch --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name, Value="assignment2-vpc"}]'| yq '.Vpc.VpcId')
+vpc_id=$(aws ec2 create-vpc --cidr-block $VPC_CIDR --region="us-west-2" --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name, Value="assignment2-vpc"}]'| yq '.Vpc.VpcId')
 echo "VPC ID $vpc_id"
 
 
@@ -28,6 +28,7 @@ aws ec2 create-subnet \
 --vpc-id $vpc_id \
 --cidr-block $EC2_PUBLIC_SUBNET_CIDR \
 --availability-zone $REGION_2A \
+--map-public-ip-on-launch \
 --tag-specifications 'ResourceType=subnet, Tags=[{Key=Name, Value="ec2_public__west_2a"}]' | yq '.Subnet.SubnetId'
 )
 
@@ -65,3 +66,8 @@ echo "Subnet ID $private_subnet_2b"
 
 
 #Create Internet Gateway
+igw_id=$(aws ec2 create-internet-gateway | yq '.InternetGateway.InternetGatewayId')
+aws ec2 attach-internet-gateway --internet-gateway-id $igw_id --vpc-id $vpc_id
+
+
+echo "Internet Gateway $igw_id"
