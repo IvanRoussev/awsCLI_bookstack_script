@@ -85,20 +85,14 @@ echo "Added route to Route table $route_table_id"
 
 
 #Create Security Groups
+
+#Creating security group for ec2 instance
 ec2_sg=$(aws ec2 create-security-group \
 	--group-name "ec2-sg" \
 	--description "Security Group for ec2 instance" \
 	--vpc-id $vpc_id | yq -r '.GroupId')
 
 echo "Security Group For Ec2 instance has been Created $ec2_sg"
-
-db_sg=$(aws ec2 create-security-group \
-	--group-name "database-sg" \
-	--description "Security Group for database" \
-	--vpc-id $vpc_id | yq -r '.GroupId')
-
-echo "Security Group For database has been Created $db_sg"
-
 
 
 #Allowing SSH and HTTP traffic to ec2 instance security group
@@ -115,6 +109,53 @@ aws ec2 authorize-security-group-ingress \
 	--cidr 0.0.0.0/0
 
 echo "Authorized security group to allow SSH and HTTP traffic"
+
+#Creating security group for database
+
+db_sg=$(aws ec2 create-security-group \
+        --group-name "database-sg" \
+        --description "Security Group for database" \
+        --vpc-id $vpc_id | yq -r '.GroupId')
+
+echo "Security Group For database has been Created $db_sg"
+
+aws ec2 authorize-security-group-ingress \
+	--group-id $db_sg \
+	--protocol tcp \
+	--port 3306 \
+	--source-group $ec2_sg
+
+echo "Authorized security group to allow mysql from within my vpc"
+
+
+#Creating Ec2 instance Ubuntu 22.04
+REGION_ec2="us-west-2"
+AMI_ID="ami-0735c191cf914754d"
+INSTANCE_TYPE="t2.micro"
+KEY_NAME="a2-ec2-key"
+
+
+# Create SSH key pair
+aws ec2 create-key-pair --key-name $KEY_NAME --query 'KeyMaterial' --output text > $KEY_NAME.pem
+chmod 600 $KEY_NAME.pem
+
+instance=$(aws ec2 run-instances \
+    	--image-id $AMI_ID \
+    	--instance-type $INSTANCE_TYPE \
+    	--key-name $KEY_NAME \
+    	--subnet-id $public_subnet_2a \
+    	--security-group-ids $ec2_sg \
+    	--region $REGION_ec2 \
+    	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=a2_instance}]')
+
+echo "______________________________________________________"
+echo "Instance Created $instance"
+
+
+
+
+
+
 
 
 
