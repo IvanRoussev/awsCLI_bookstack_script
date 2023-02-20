@@ -83,6 +83,9 @@ aws ec2 create-route \
 echo "Added route to Route table $route_table_id"
 
 
+#Add route table to public ec2 subnet
+aws ec2 associate-route-table --subnet-id $public_subnet_2a --route-table-id $route_table_id
+
 
 #Create Security Groups
 
@@ -132,25 +135,44 @@ echo "Authorized security group to allow mysql from within my vpc"
 REGION_ec2="us-west-2"
 AMI_ID="ami-0735c191cf914754d"
 INSTANCE_TYPE="t2.micro"
-KEY_NAME="a2-ec2-key"
-
+KEY_NAME="rds-ec2-key"
+INSTANCE_NAME="a2-instance"
+USER_NAME="ubuntu"
+PUBLIC_IP=""
 
 # Create SSH key pair
 aws ec2 create-key-pair --key-name $KEY_NAME --query 'KeyMaterial' --output text > $KEY_NAME.pem
-chmod 600 $KEY_NAME.pem
+sudo chmod 400 $KEY_NAME.pem
 
+
+#creating instance
 instance=$(aws ec2 run-instances \
     	--image-id $AMI_ID \
     	--instance-type $INSTANCE_TYPE \
     	--key-name $KEY_NAME \
     	--subnet-id $public_subnet_2a \
     	--security-group-ids $ec2_sg \
-    	--region $REGION_ec2 \
-    	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=a2_instance}]')
+    	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value='$INSTANCE_NAME'}]' \
+	--query 'Instances[0].InstanceId' --output text)
+
 
 echo "______________________________________________________"
-echo "Instance Created $instance"
+echo "Instance Created with ID: $instance"
 
+
+#Command to wait for instance to start running and then proceed to the next command
+echo "Waiting for instance to start running..."
+aws ec2 wait instance-running --instance-ids $instance
+
+
+#find the public ip of the instance so we can then ssh into the instance
+PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $instance --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo "Public IP address of instance: $PUBLIC_IP"
+
+
+#SSH into instance
+echo "SSH into instance..."
+ssh -i $KEY_NAME.pem $USER_NAME@$PUBLIC_IP
 
 
 
