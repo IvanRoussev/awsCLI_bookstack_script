@@ -63,5 +63,50 @@ aws ec2 create-internet-gateway \
 --tag-specifications 'ResourceType=internet-gateway, Tags=[{Key=Name, Value="a2-igw"}]' | yq '.InternetGateway.InternetGatewayId')
 aws ec2 attach-internet-gateway --internet-gateway-id $igw_id --vpc-id $vpc_id
 
-
 echo "Internet Gateway $igw_id"
+
+
+#Create Route Table
+route_table_id=$(
+aws ec2 create-route-table \
+--vpc-id $vpc_id \
+--tag-specifications 'ResourceType=route-table, Tags=[{Key=Name, Value="route-table-as2"}]' | yq '.RouteTable.RouteTableId')
+
+echo "Route Table $route_table_id"
+
+#Add Internet Gateway as a route in RouteTable
+aws ec2 create-route \
+	--route-table-id $route_table_id \
+	--destination-cidr-block 0.0.0.0/0 \
+	--gateway-id $igw_id
+
+echo "Added route to Route table $route_table_id"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
