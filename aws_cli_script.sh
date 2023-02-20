@@ -28,9 +28,10 @@ aws ec2 create-subnet \
 --vpc-id $vpc_id \
 --cidr-block $EC2_PUBLIC_SUBNET_CIDR \
 --availability-zone $REGION_2A \
---map-public-ip-on-launch \
 --tag-specifications 'ResourceType=subnet, Tags=[{Key=Name, Value="ec2_public__west_2a"}]' | yq '.Subnet.SubnetId'
 )
+
+aws ec2 modify-subnet-attribute --subnet-id $public_subnet_2a --map-public-ip-on-launch
 
 
 
@@ -56,17 +57,10 @@ echo "Subnet ID $private_subnet_2a"
 echo "Subnet ID $private_subnet_2b"
 
 
-
-
-
-
-
-
-
-
-
 #Create Internet Gateway
-igw_id=$(aws ec2 create-internet-gateway | yq '.InternetGateway.InternetGatewayId')
+igw_id=$(
+aws ec2 create-internet-gateway \
+--tag-specifications 'ResourceType=internet-gateway, Tags=[{Key=Name, Value="a2-igw"}]' | yq '.InternetGateway.InternetGatewayId')
 aws ec2 attach-internet-gateway --internet-gateway-id $igw_id --vpc-id $vpc_id
 
 
