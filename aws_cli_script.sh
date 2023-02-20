@@ -84,7 +84,37 @@ echo "Added route to Route table $route_table_id"
 
 
 
+#Create Security Groups
+ec2_sg=$(aws ec2 create-security-group \
+	--group-name "ec2-sg" \
+	--description "Security Group for ec2 instance" \
+	--vpc-id $vpc_id | yq -r '.GroupId')
 
+echo "Security Group For Ec2 instance has been Created $ec2_sg"
+
+db_sg=$(aws ec2 create-security-group \
+	--group-name "database-sg" \
+	--description "Security Group for database" \
+	--vpc-id $vpc_id | yq -r '.GroupId')
+
+echo "Security Group For database has been Created $db_sg"
+
+
+
+#Allowing SSH and HTTP traffic to ec2 instance security group
+aws ec2 authorize-security-group-ingress \
+	--group-id $ec2_sg \
+	--protocol tcp \
+	--port 22 \
+	--cidr 0.0.0.0/0
+
+aws ec2 authorize-security-group-ingress \
+	--group-id $ec2_sg \
+	--protocol tcp \
+	--port 80 \
+	--cidr 0.0.0.0/0
+
+echo "Authorized security group to allow SSH and HTTP traffic"
 
 
 
