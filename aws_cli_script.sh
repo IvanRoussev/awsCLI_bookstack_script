@@ -126,7 +126,7 @@ aws ec2 authorize-security-group-ingress \
 	--group-id $db_sg \
 	--protocol tcp \
 	--port 3306 \
-	--source-group $ec2_sg
+	--cidr 0.0.0.0/16
 
 echo "Authorized security group to allow mysql from within my vpc"
 
@@ -141,8 +141,8 @@ USER_NAME="ubuntu"
 PUBLIC_IP=""
 
 # Create SSH key pair
-aws ec2 create-key-pair --key-name $KEY_NAME --query 'KeyMaterial' --output text > $KEY_NAME.pem
-sudo chmod 400 $KEY_NAME.pem
+#aws ec2 create-key-pair --key-name $KEY_NAME --query 'KeyMaterial' --output text > $KEY_NAME.pem
+#sudo chmod 400 $KEY_NAME.pem
 
 
 #creating instance
@@ -171,13 +171,22 @@ echo "Public IP address of instance: $PUBLIC_IP"
 
 
 #SSH into instance
-echo "SSH into instance..."
-ssh -i $KEY_NAME.pem $USER_NAME@$PUBLIC_IP
+#echo "SSH into instance..."
+#ssh -i "$KEY_NAME.pem" $USER_NAME@$PUBLIC_IP
 
 
 
 
+#Creating Subnet Group for Database
+SUBNET_GROUP_NAME="rds-sng"
+rds_subnet_group=$(aws rds create-db-subnet-group \
+	--db-subnet-group-name $SUBNET_GROUP_NAME \
+	--db-subnet-group-description "Subnet group for rds" \
+	--subnet-ids $private_subnet_2a $private_subnet_2b \
+	--tags Key=Name,Value=$SUBNET_GROUP_NAME)
 
+
+echo "Subnet Group for Database has been created $rds_subnet_group"
 
 
 
