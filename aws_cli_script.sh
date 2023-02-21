@@ -170,9 +170,6 @@ PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $instance --query 'Reserva
 echo "Public IP address of instance: $PUBLIC_IP"
 
 
-#SSH into instance
-#echo "SSH into instance..."
-#ssh -i "$KEY_NAME.pem" $USER_NAME@$PUBLIC_IP
 
 
 
@@ -191,9 +188,6 @@ echo "Subnet Group for Database has been created $rds_subnet_group"
 
 
 
-
-
-
 DB_NAME="mydatabase"
 DB_INSTANCE_IDENTIFIER="mydbinstance"
 DB_INSTANCE_CLASS="db.t3.micro"
@@ -204,7 +198,7 @@ DB_MASTER_PASSWORD="mypassword"
 DB_SUBNET_GROUP_NAME="rds-sng"
 DB_ALLOCATED_STORAGE=10
 
-aws rds create-db-instance \
+rds_db_instance=$(aws rds create-db-instance \
     --db-name $DB_NAME \
     --db-instance-identifier $DB_INSTANCE_IDENTIFIER \
     --db-instance-class $DB_INSTANCE_CLASS \
@@ -213,17 +207,24 @@ aws rds create-db-instance \
     --master-username $DB_MASTER_USERNAME \
     --master-user-password $DB_MASTER_PASSWORD \
     --allocated-storage $DB_ALLOCATED_STORAGE \
-    --db-subnet-group-name $DB_SUBNET_GROUP_NAME 
+    --db-subnet-group-name $DB_SUBNET_GROUP_NAME \
+    --vpc-security-group-ids $db_sg \
+    --tags 'Key=Name,Value=assignment2-rds' | yq '.DBInstance.DBInstanceIdentifier')
 
+echo "Creating Database Instance... Please wait"
 
+aws rds wait db-instance-available --db-instance-identifier $DB_INSTANCE_IDENTIFIER
 
+echo "RDS Database instance created: $rds_db_instance"
 
+DB_ENDPOINT=$(aws rds describe-db-instances \
+    --db-instance-identifier $DB_INSTANCE_IDENTIFIER \
+    --query 'DBInstances[0].Endpoint.Address' \
+    --output text)
 
+echo "Trying to SSH ....."
 
-
-
-
-
+ssh ubuntu@$PUBLIC_IP "mysql -h $DB_ENDPOINT -u $DB_MASTER_USERNAME -p$DB_MASTER_PASSWORD"
 
 
 
