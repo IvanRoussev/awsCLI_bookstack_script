@@ -194,14 +194,32 @@ echo "Subnet Group for Database has been created $rds_subnet_group"
 
 
 
+DB_INSTANCE_NAME="rds-mysql"
+DB_ENGINE="mysql"
+DB_ENGINE_VERSION="8.0.25"
+DB_INSTANCE_CLASS="db.t3.micro"
+DB_MASTER_USER="admin"
+DB_MASTER_PASSWORD="Password123!"
+
+
+
+
+rds_instance=$(aws rds create-db-instance \
+    	--db-instance-identifier $DB_INSTANCE_NAME \
+	--engine $DB_ENGINE \
+	--engine-version $DB_ENGINE_VERSION \
+	--db-instance-class $DB_INSTANCE_CLASS \
+	--master-username $DB_MASTER_USER \
+	--master-user-password $DB_MASTER_PASSWORD \
+	--allocated-storage 20 \
+	--db-subnet-group-name $SUBNET_GROUP_NAME \
+	--vpc-security-group-ids $private_subnet_2a $private_subnet_2b)
 
 
 
 
 
-
-
-
+echo "rds instance created ID: $rds_instance"
 
 
 
