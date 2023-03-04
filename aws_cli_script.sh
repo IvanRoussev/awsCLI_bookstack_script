@@ -1,3 +1,4 @@
+#!/bin/bash
 #Assigment 2 script
 
 #VPC Variables
