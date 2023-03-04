@@ -18,7 +18,11 @@ REGION_2B="us-west-2b"
 # _____________Start of commands________________
 
 #Creating a new VPC
-vpc_id=$(aws ec2 create-vpc --cidr-block $VPC_CIDR --region="us-west-2" --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name, Value="assignment2-vpc"}]'| yq '.Vpc.VpcId')
+vpc_id=$(aws ec2 create-vpc \
+--cidr-block $VPC_CIDR \
+--region="us-west-2" \
+--tag-specifications 'ResourceType=vpc,Tags=[{Key=Name, Value="assignment2-vpc"}]'| yq '.Vpc.VpcId')
+
 echo "VPC Created: ID $vpc_id"
 
 
@@ -61,6 +65,7 @@ echo "Subnet Created in AZ $REGION_2B : ID $private_subnet_2b"
 igw_id=$(
 aws ec2 create-internet-gateway \
 --tag-specifications 'ResourceType=internet-gateway, Tags=[{Key=Name, Value="rds-igw"}]' | yq '.InternetGateway.InternetGatewayId')
+
 aws ec2 attach-internet-gateway --internet-gateway-id $igw_id --vpc-id $vpc_id
 
 echo "Internet Gateway Created $igw_id"
@@ -147,8 +152,8 @@ USER_NAME="ubuntu"
 PUBLIC_IP=""
 
 # Create SSH key pair
-#aws ec2 create-key-pair --key-name $KEY_NAME --query 'KeyMaterial' --output text > $KEY_NAME.pem
-#sudo chmod 400 $KEY_NAME.pem
+aws ec2 create-key-pair --key-name $KEY_NAME --query 'KeyMaterial' --output text > $KEY_NAME.pem
+sudo chmod 400 $KEY_NAME.pem
 
 
 #creating instance
@@ -158,6 +163,7 @@ instance=$(aws ec2 run-instances \
     	--key-name $KEY_NAME \
     	--subnet-id $public_subnet_2a \
     	--security-group-ids $ec2_sg \
+	--associate-public-ip-address \
     	--tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value='$INSTANCE_NAME'}]' \
 	--query 'Instances[0].InstanceId' --output text)
 
@@ -182,7 +188,7 @@ echo "Public IP address of instance: $PUBLIC_IP"
 
 
 #Creating Subnet Group for Database
-SUBNET_GROUP_NAME="rds-subnet-group"
+SUBNET_GROUP_NAME="rds-sng"
 rds_subnet_group=$(aws rds create-db-subnet-group \
 	--db-subnet-group-name $SUBNET_GROUP_NAME \
 	--db-subnet-group-description "Subnet group for rds" \
@@ -196,13 +202,13 @@ echo "Subnet Group for Database has been created ID: $rds_subnet_group | In Subn
 
 
 DB_NAME="bookstack"
-DB_INSTANCE_IDENTIFIER="bookstack-db"
+DB_INSTANCE_IDENTIFIER="bookstackdb"
 DB_INSTANCE_CLASS="db.t3.micro"
 DB_ENGINE="mysql"
 DB_ENGINE_VERSION="8.0.28"
 DB_MASTER_USERNAME="admin"
 DB_MASTER_PASSWORD="Password"
-DB_SUBNET_GROUP_NAME="rds-subnet-group"
+DB_SUBNET_GROUP_NAME="rds-sng"
 DB_ALLOCATED_STORAGE=10
 
 rds_db_instance=$(aws rds create-db-instance \
@@ -239,7 +245,7 @@ function describe_components() {
 	aws ec2 describe-route-tables --route-table-ids $route_table_id
 	aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$vpc_id"
 	aws ec2 describe-instances --instance-ids $instance
-	aws rds describe-db-subnet-groups --db-subnet-group-name $rds_subnet_group
+	aws rds describe-db-subnet-groups --db-subnet-group-name $DB_SUBNET_GROUP_NAME
 	aws rds describe-db-instances --db-instance-identifier $rds_db_instance	
 }
 
@@ -254,7 +260,7 @@ else
 fi
 
 
-echo "Do you want to SSH into ubuntu isntance (Yes/No)"
+echo "Do you want to SSH into ubuntu instance (Yes/No)"
 read response
 
 if [ "$response" == "Yes" ]
